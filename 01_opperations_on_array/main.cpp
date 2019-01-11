@@ -29,7 +29,7 @@ int main (int argc, char** argv) {
     std::cout<<"Current process :: "<<proc_id<<std::endl;
     std::cout<<"Total process :: "<<num_procs<<std::endl;
 
-    RmaMPIOppTest opp("this_file.ext");
+    RmaMPIOppTest opp("../input_files/array_proc");
 
     // Finalize the MPI environment.
     MPI_Finalize();
