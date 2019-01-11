@@ -26,10 +26,17 @@ public:
 
 private:
 
-    std::vector<double> mVectorPart;
+    std::vector<int> mVectorPart;
+    std::vector<int> mVectorGlobal;
     std::string mInputFileName;
+    MPI_Win mMpiWindow;
 
     void ReadInputFile();
+    int GetKeyWordPosition(std::ifstream& File, std::string KeyWord) const;
+    void InitialieMpi() const;
+    void FinalizeMpi() const;
+
+    void CreateWindow();
 
 };
 
