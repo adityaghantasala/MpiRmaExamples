@@ -19,6 +19,9 @@ include_directories(${MPI_INCLUDE_PATH} "src/")
 
 add_executable(RmaArrayOpp main.cpp)
 
+add_library(opp_library STATIC ${SOURCES})
+set_target_properties(opp_library PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 if(MPI_COMPILE_FLAGS)
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
 endif()
@@ -27,4 +30,4 @@ if(MPI_LINK_FLAGS)
     set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
 endif()
 
-target_link_libraries(RmaArrayOpp ${MPI_LIBRARIES})
+target_link_libraries(RmaArrayOpp ${MPI_LIBRARIES} opp_library)
