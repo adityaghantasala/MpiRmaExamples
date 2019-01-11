@@ -1,0 +1,8 @@
+# Ignore all .o files
+*/*.o
+
+# Ignore all make files
+*/MakeFile
+
+# Ignore all build folders
+*/Build/*
