@@ -34,18 +34,20 @@ void RmaMPIOppTest::CreateWindow()
     int size_local_vector = mVectorPart.size();
     int size_global = 0;
     MPI_Allreduce(&size_local_vector, &size_global, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD);
-
     mVectorGlobal.resize(size_global);
-    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &mMpiWindow);
+    if(mCurrentRank == 0)
+        std::cout<<"Global size :: "<<size_global<<std::endl;
 
-    MPI_Win_attach(mMpiWindow, &mVectorPart[0], mVectorPart.size()*sizeof(int));
+    //MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &mMpiWindow);
+    //MPI_Win_attach(mMpiWindow, &mVectorPart[0], mVectorPart.size()*sizeof(int));
 
-    //MPI_Win_allocate(mVectorPart.size()*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &mVectorPart[0], &mMpiWindow);
+    MPI_Win_create(&mVectorPart[0], mVectorPart.size(), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &mMpiWindow);
+    MPI_Win_fence(0, mMpiWindow);
 }
 
 
 void RmaMPIOppTest::SynchronizeData()
-{
+{  
     if(mCurrentRank == 0){
 
         int i=0;
@@ -55,14 +57,58 @@ void RmaMPIOppTest::SynchronizeData()
            ++i;
         }
 
+        std::vector<int> local_buffer(4,0);
+        MPI_Request request;
         for(int rank=1; rank<mNumberOfProc; ++rank)
         {
-            MPI_Get(&mVectorGlobal[rank*4], 4, MPI_INT, rank, 0, 4, MPI_INT, mMpiWindow);
+            std::cout<<"Getting from process :: "<<rank<<" start is :: "<<rank*4<<std::endl;
+            MPI_Rget(&mVectorGlobal[4*rank], 4, MPI_INT, rank, 0, 4, MPI_INT, mMpiWindow, &request);
         }
-
+    }
+    
+    MPI_Win_fence(0, mMpiWindow);    
+    if(mCurrentRank == 0)
         for (const auto& val : mVectorGlobal)
             std::cout<<"mVectorGlobal :: "<<val<<std::endl;
+
+}
+
+
+void RmaMPIOppTest::ModSynchronizeData()
+{  
+    if(mCurrentRank == 1)
+        for (auto& val : mVectorPart)
+            val = val+25;
+
+    if(mCurrentRank == 2)
+        for (auto& val : mVectorPart)
+            val = val*10;            
+
+    if(mCurrentRank == 0){
+
+        std::cout<<"SynchronizeData()"<<std::endl;
+
+        int i=0;
+        for (const auto& val : mVectorPart)
+        {
+           mVectorGlobal[i] = val;
+           ++i;
+        }
+
+        std::vector<int> local_buffer(4,0);
+        MPI_Request request;
+        for(int rank=1; rank<mNumberOfProc; ++rank)
+        {
+            std::cout<<"Getting from process :: "<<rank<<" start is :: "<<rank*4<<std::endl;
+            MPI_Rget(&mVectorGlobal[4*rank], 4, MPI_INT, rank, 0, 4, MPI_INT, mMpiWindow, &request);
+        }
     }
+    
+    MPI_Win_fence(0, mMpiWindow);    
+    if(mCurrentRank == 0)
+        for (const auto& val : mVectorGlobal)
+            std::cout<<"mVectorGlobal :: "<<val<<std::endl;
+
 }
 
 
@@ -90,6 +136,8 @@ void RmaMPIOppTest::ReadInputFile()
     std::string tmp_string;
     std::string line;
     int num_entries;
+    mVectorPart.clear();
+    mVectorPart.resize(0);
 
     int position = GetKeyWordPosition(this_proc_file, "NUM_ENTRIES");
 

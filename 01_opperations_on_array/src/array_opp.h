@@ -24,6 +24,7 @@ public:
     ~RmaMPIOppTest();
 
     void SynchronizeData();
+    void ModSynchronizeData();
 
 
 private:
