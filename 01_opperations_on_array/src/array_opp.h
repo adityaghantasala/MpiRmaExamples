@@ -23,6 +23,8 @@ public:
 
     ~RmaMPIOppTest();
 
+    void SynchronizeData();
+
 
 private:
 
@@ -30,6 +32,8 @@ private:
     std::vector<int> mVectorGlobal;
     std::string mInputFileName;
     MPI_Win mMpiWindow;
+    int mCurrentRank;
+    int mNumberOfProc;
 
     void ReadInputFile();
     int GetKeyWordPosition(std::ifstream& File, std::string KeyWord) const;

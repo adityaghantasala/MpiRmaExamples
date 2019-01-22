@@ -11,37 +11,59 @@
 RmaMPIOppTest::RmaMPIOppTest(const std::string FileName):mInputFileName(FileName)
 {
     InitialieMpi();
-
-    int this_proc_id, num_procs;
-    MPI_Comm_rank(MPI_COMM_WORLD, &this_proc_id);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-    if(num_procs != 1)
-        mInputFileName = mInputFileName+"_"+std::to_string(this_proc_id+1)+".txt";
+    MPI_Comm_rank(MPI_COMM_WORLD, &mCurrentRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mNumberOfProc);
+    if(mNumberOfProc != 1)
+        mInputFileName = mInputFileName+"_"+std::to_string(mCurrentRank+1)+".txt";
     else
         mInputFileName = mInputFileName+".txt";
 
-    std::cout<<"InputFileName for proc :: "<<this_proc_id<<" is : "<<mInputFileName<<std::endl;
+    std::cout<<"InputFileName for proc :: "<<mCurrentRank<<" is : "<<mInputFileName<<std::endl;
     ReadInputFile();
-
     CreateWindow();
 }
 
 RmaMPIOppTest::~RmaMPIOppTest()
 {
-
+    MPI_Win_free(&mMpiWindow);
+    FinalizeMpi();
 }
 
 void RmaMPIOppTest::CreateWindow()
 {
     int size_local_vector = mVectorPart.size();
     int size_global = 0;
-    MPI_Allgather(&size_local_vector, 1, MPI_INT,&size_global,1,MPI_INT,MPI_COMM_WORLD)
+    MPI_Allreduce(&size_local_vector, &size_global, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD);
 
+    mVectorGlobal.resize(size_global);
+    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &mMpiWindow);
 
+    MPI_Win_attach(mMpiWindow, &mVectorPart[0], mVectorPart.size()*sizeof(int));
 
-    MPI_Win_allocate(mVectorPart.size()*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &mVectorPart[0], &mMpiWindow);
+    //MPI_Win_allocate(mVectorPart.size()*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &mVectorPart[0], &mMpiWindow);
 }
 
+
+void RmaMPIOppTest::SynchronizeData()
+{
+    if(mCurrentRank == 0){
+
+        int i=0;
+        for (const auto& val : mVectorPart)
+        {
+           mVectorGlobal[i] = val;
+           ++i;
+        }
+
+        for(int rank=1; rank<mNumberOfProc; ++rank)
+        {
+            MPI_Get(&mVectorGlobal[rank*4], 4, MPI_INT, rank, 0, 4, MPI_INT, mMpiWindow);
+        }
+
+        for (const auto& val : mVectorGlobal)
+            std::cout<<"mVectorGlobal :: "<<val<<std::endl;
+    }
+}
 
 
 void RmaMPIOppTest::InitialieMpi() const
@@ -76,7 +98,6 @@ void RmaMPIOppTest::ReadInputFile()
     std::stringstream line_stream(line);
     line_stream >>tmp_string;
     line_stream >>num_entries;
-    std::cout<<"NUM_ENTRIES :: "<<num_entries<<std::endl;
 
     int temp_num;
     int num_entries_read = 0;

@@ -13,8 +13,7 @@
 
 int main (int argc, char** argv) {
 
-    // Initialize MPI environment.
-    MPI_Init(NULL, NULL);
+    RmaMPIOppTest opp("../input_files/array_proc");
 
     // Get the current rank and total ranks
     int proc_id, num_procs;
@@ -29,10 +28,7 @@ int main (int argc, char** argv) {
     std::cout<<"Current process :: "<<proc_id<<std::endl;
     std::cout<<"Total process :: "<<num_procs<<std::endl;
 
-    RmaMPIOppTest opp("../input_files/array_proc");
-
-    // Finalize the MPI environment.
-    MPI_Finalize();
+    opp.SynchronizeData();
 
   return 0;
 }
